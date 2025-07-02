@@ -1229,6 +1229,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		}
 
 		if err != nil {
+			fmt.Println("Error connecting to server:", err)
 			w.tryDeliver(nil, err)
 
 			// If there's an error connecting the new connection, call the handshake error handler

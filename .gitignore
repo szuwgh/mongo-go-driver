@@ -42,3 +42,5 @@ api-report.txt
 secrets-expansion.yml
 secrets-export.sh
 .test.env
+
+certs/

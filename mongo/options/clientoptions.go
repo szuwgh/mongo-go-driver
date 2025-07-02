@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"gitee.com/Trisia/gotlcp/tlcp"
 	"github.com/youmark/pkcs8"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
@@ -279,6 +280,7 @@ type ClientOptions struct {
 	SRVServiceName           *string
 	Timeout                  *time.Duration
 	TLSConfig                *tls.Config
+	TLCPConfig               *tlcp.Config
 	WriteConcern             *writeconcern.WriteConcern
 	ZlibLevel                *int
 	ZstdLevel                *int
@@ -1004,6 +1006,11 @@ func (c *ClientOptions) SetTimeout(d time.Duration) *ClientOptions {
 func (c *ClientOptions) SetTLSConfig(cfg *tls.Config) *ClientOptions {
 	c.TLSConfig = cfg
 
+	return c
+}
+
+func (c *ClientOptions) SetTLCPConfig(cfg *tlcp.Config) *ClientOptions {
+	c.TLCPConfig = cfg
 	return c
 }
 

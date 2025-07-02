@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitee.com/Trisia/gotlcp/tlcp"
 	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
 	"go.mongodb.org/mongo-driver/v2/mongo/address"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -166,6 +167,39 @@ func configureTLS(ctx context.Context,
 	return client, nil
 }
 
+func configureTLCP(ctx context.Context,
+	tlcpConnSource tlcpConnectionSource,
+	nc net.Conn,
+	addr address.Address,
+	config *tlcp.Config,
+	ocspOpts *ocsp.VerifyOptions,
+) (net.Conn, error) {
+	// Ensure config.ServerName is always set for SNI.
+	// if config.ServerName == "" {
+	// 	hostname := addr.String()
+	// 	colonPos := strings.LastIndex(hostname, ":")
+	// 	if colonPos == -1 {
+	// 		colonPos = len(hostname)
+	// 	}
+
+	// 	hostname = hostname[:colonPos]
+	// 	config.ServerName = hostname
+	// }
+
+	client := tlcpConnSource.Client(nc, config)
+	if err := clientTLCPHandshake(ctx, client); err != nil {
+		return nil, err
+	}
+
+	// Only do OCSP verification if TLS verification is requested.
+	// if !config.InsecureSkipVerify {
+	// 	if ocspErr := ocsp.Verify(ctx, client.ConnectionState(), ocspOpts); ocspErr != nil {
+	// 		return nil, ocspErr
+	// 	}
+	// }
+	return client, nil
+}
+
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform initialization
 // handshakes. All errors returned by connect are considered "before the handshake completes" and
 // must be handled by calling the appropriate SDAM handshake error handler.
@@ -231,6 +265,22 @@ func (c *connection) connect(ctx context.Context) (err error) {
 			return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLS for %s", c.addr)}
 		}
 		c.nc = tlsNc
+	}
+
+	if c.config.tlcpConfig != nil {
+		fmt.Println("Using TLCP connection")
+		tlcpConfig := c.config.tlcpConfig.Clone()
+		ocspOpts := &ocsp.VerifyOptions{
+			Cache:                   c.config.ocspCache,
+			DisableEndpointChecking: c.config.disableOCSPEndpointCheck,
+			HTTPClient:              c.config.httpClient,
+		}
+		tlcpNc, err := configureTLCP(ctx, c.config.tlcpConnectionSource, c.nc, c.addr, tlcpConfig, ocspOpts)
+
+		if err != nil {
+			return ConnectionError{Wrapped: err, init: true, message: fmt.Sprintf("failed to configure TLCP for %s", c.addr)}
+		}
+		c.nc = tlcpNc
 	}
 
 	// running hello and authentication is handled by a handshaker on the configuration instance.

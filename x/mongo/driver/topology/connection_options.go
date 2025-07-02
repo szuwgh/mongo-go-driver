@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"time"
 
+	"gitee.com/Trisia/gotlcp/tlcp"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/httputil"
@@ -53,6 +54,7 @@ type connectionConfig struct {
 	idleTimeout              time.Duration
 	cmdMonitor               *event.CommandMonitor
 	tlsConfig                *tls.Config
+	tlcpConfig               *tlcp.Config
 	httpClient               *http.Client
 	compressors              []string
 	zlibLevel                *int
@@ -60,15 +62,17 @@ type connectionConfig struct {
 	ocspCache                ocsp.Cache
 	disableOCSPEndpointCheck bool
 	tlsConnectionSource      tlsConnectionSource
+	tlcpConnectionSource     tlcpConnectionSource
 	loadBalanced             bool
 	getGenerationFn          generationNumberFn
 }
 
 func newConnectionConfig(opts ...ConnectionOption) *connectionConfig {
 	cfg := &connectionConfig{
-		dialer:              nil,
-		tlsConnectionSource: defaultTLSConnectionSource,
-		httpClient:          httputil.DefaultHTTPClient,
+		dialer:               nil,
+		tlsConnectionSource:  defaultTLSConnectionSource,
+		tlcpConnectionSource: defaultTLCPConnectionSource,
+		httpClient:           httputil.DefaultHTTPClient,
 	}
 
 	for _, opt := range opts {
@@ -129,6 +133,13 @@ func WithIdleTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
 func WithTLSConfig(fn func(*tls.Config) *tls.Config) ConnectionOption {
 	return func(c *connectionConfig) {
 		c.tlsConfig = fn(c.tlsConfig)
+	}
+}
+
+// WithTLCPConfig configures the TLCP options for a connection.
+func WithTLCPConfig(fn func(*tlcp.Config) *tlcp.Config) ConnectionOption {
+	return func(c *connectionConfig) {
+		c.tlcpConfig = fn(c.tlcpConfig)
 	}
 }
 

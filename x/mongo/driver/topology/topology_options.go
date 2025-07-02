@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"time"
 
+	"gitee.com/Trisia/gotlcp/tlcp"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/internal/optionsutil"
@@ -389,6 +390,14 @@ func NewConfigFromOptionsWithAuthenticator(opts *options.ClientOptions, clock *s
 		connOpts = append(connOpts, WithTLSConfig(
 			func(*tls.Config) *tls.Config {
 				return opts.TLSConfig
+			},
+		))
+	}
+
+	if opts.TLCPConfig != nil {
+		connOpts = append(connOpts, WithTLCPConfig(
+			func(*tlcp.Config) *tlcp.Config {
+				return opts.TLCPConfig
 			},
 		))
 	}

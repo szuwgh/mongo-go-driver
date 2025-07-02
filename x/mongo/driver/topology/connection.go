@@ -267,8 +267,8 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		c.nc = tlsNc
 	}
 
+	//添加tlcp连接方式
 	if c.config.tlcpConfig != nil {
-		fmt.Println("Using TLCP connection")
 		tlcpConfig := c.config.tlcpConfig.Clone()
 		ocspOpts := &ocsp.VerifyOptions{
 			Cache:                   c.config.ocspCache,
